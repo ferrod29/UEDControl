@@ -1,0 +1,27 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.vscode/
+.idea/
+.settings/
+.project
+.pydevproject
+
+# Acquired data and logs never belong in the repository
+data/
+logs/
+*.log
+*.h5
+*.hdf5
+*.tif
+*.tiff
+*.png
+!docs/**/*.png
+
+# Site-specific configuration (commit a template instead)
+config/local*.yaml

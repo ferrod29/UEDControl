@@ -1,0 +1,194 @@
+# Configuration of the UED instrument, with every instrument supported by uedcontrol.
+#
+# Copy this file (e.g. to config/local.yaml, which git ignores), delete what your
+# set-up does not have, adjust ports and serial numbers, then run:
+#
+#     uedcontrol --config config/local.yaml
+#
+# Each device entry needs a `driver` (see uedcontrol/devices/registry.py). The keys
+# `label`, `group`, `autoconnect` and `panel` are for the GUI; all other keys are
+# passed to the driver (port, serial_number, ...). Serial-port drivers also accept
+# pyserial options such as `baudrate` or `timeout` to override their defaults.
+# The values below are those found in the original InstrumentControl and
+# UEDControlSystem code.
+
+name: UED
+data_dir: D:/UEDData            # every scan gets its own sub-folder here
+log_dir: D:/UEDData/logs
+
+devices:
+  # --------------------------------------------------------------- detectors
+  detector:
+    driver: dectris_quadro
+    label: DECTRIS QUADRO
+    group: Cameras
+    host: 10.6.101.55
+    port: 80
+    incident_energy_ev: 100000
+  basler:
+    driver: basler
+    label: Basler camera
+    group: Cameras
+    pixel_size_um: 3.45
+  pco:
+    driver: pco
+    label: PCO camera
+    group: Cameras
+    pixel_size_um: 4.65
+  andor:                          # any Micro-Manager camera works the same way
+    driver: micromanager
+    label: Andor Zyla (Micro-Manager)
+    group: Cameras
+    mm_dir: C:/Program Files/Micro-Manager-2.0
+    device_label: AndorZyla       # device label inside Micro-Manager
+    library: AndorSDK3
+    device: Andor sCMOS Camera
+    pixel_size_um: 6.5
+    properties:
+      ElectronicShutteringMode: Global
+      PixelReadoutRate: 200 MHz - lowest noise
+
+  # -------------------------------------------------------------- electron gun
+  gun_hv:
+    driver: matsusada_cohvu32
+    label: Electron gun HV (Matsusada)
+    group: Electron gun
+    port: COM16
+    full_scale_current_ua: 1500
+  gun_hv_heinzinger:
+    driver: heinzinger_pnchp100
+    label: Electron gun HV (Heinzinger)
+    group: Electron gun
+    port: COM5
+
+  # ---------------------------------------------------------- electron optics
+  lenses:
+    driver: rs_nge100
+    label: Magnetic lenses
+    group: Electron optics
+    port: COM18
+    panel:
+      channel_names: [Condenser, Horizontal, Vertical]
+  solenoid:
+    driver: rs_hmp4040
+    label: Solenoid lens
+    group: Electron optics
+    port: COM8
+    panel:
+      channel_names: [CH1, Solenoid, CH3, CH4]
+      # Coil temperature from its resistance, calibrated with the chiller at 10 °C
+      coil_temperature:
+        2: {slope: 6.8301, offset: -113.16}
+  lens_chiller:
+    driver: oasis_three
+    label: Lens chiller
+    group: Electron optics
+    port: COM9
+
+  # ------------------------------------------------------------------- laser
+  delay_stage:
+    driver: pi_mercury_c663
+    label: Delay stage (PI Mercury)
+    group: Delay line
+    serial_number: "0115500008"
+    stages: [M-531.2S1]
+  delay_stage_smc:
+    driver: newport_smc100
+    label: Delay stage (Newport SMC100)
+    group: Delay line
+    port: COM4
+  mirrors:
+    driver: newport_agilis_uc8
+    label: Pump/probe mirrors
+    group: Laser
+    port: COM3
+    panel:
+      channel_names: [Probe 1, Probe 2, Pump 1, Pump 2]
+  waveplate:
+    driver: thorlabs_kdc101
+    label: Half-wave plate rotation
+    group: Laser
+    port: COM19
+  pump_power:
+    driver: newport_1935c
+    label: Pump power meter
+    group: Laser
+    port: COM9
+  sample_stage:
+    driver: attocube_ecc100
+    label: Sample stage X
+    group: Sample
+    axis: 0
+    dll_path: C:/Program Files/attocube/ECC100/Win64/ecc.dll
+
+  # ---------------------------------------------------------------------- RF
+  rf_amplifier:
+    driver: drxworks_statera100
+    label: RF amplifier
+    group: RF
+  rf_forward:
+    driver: minicircuits_power_sensor
+    label: Forward power (CPL-IN)
+    group: RF
+    serial_number: "12210060151"
+    coupling_db: 30.59
+    frequency_mhz: 3000
+  rf_reflected:
+    driver: minicircuits_power_sensor
+    label: Reflected power (CPL-OUT)
+    group: RF
+    serial_number: "12210060144"
+    coupling_db: 30.85
+    frequency_mhz: 3000
+  rf_attenuator:
+    driver: minicircuits_attenuator
+    label: RF attenuator
+    group: RF
+
+  # ------------------------------------------------------------------ vacuum
+  vacuum:
+    driver: edwards_tic
+    label: Edwards TIC
+    group: Vacuum
+    port: COM9
+    gauges: [1, 2, 3]
+  turbo:
+    driver: agilent_twistorr
+    label: TwisTorr turbo pump
+    group: Vacuum
+    port: COM2
+
+  # ---------------------------------------------------------------- auxiliary
+  aux_supply:
+    driver: delta_sm70ar24
+    label: Delta SM 70-AR-24
+    group: Auxiliary
+    port: COM9
+  cavity_chiller:                 # unverified driver, see smc_hecr.py
+    driver: smc_hecr
+    label: SMC chiller
+    group: Auxiliary
+    port: COM5
+  delay_generator:                # unverified driver, see delay_generator.py
+    driver: mpsd_delay_generator
+    label: Delay generator
+    group: Auxiliary
+    port: COM3
+
+delay_line:
+  stage: delay_stage              # device used for pump-probe scans
+  t0_position: 153.0              # mm; can be changed from the GUI ("Set T0 here")
+  passes: 2                       # optical passes over the stage (retro-reflector: 2)
+  direction: 1                    # +1: larger position = later probe
+
+beam:
+  rep_rate_khz: 1.0
+  pulsed: true
+  counts_per_electron: 1.0        # counting detector
+
+rf_interlock:                     # switches the amplifier off on excessive reflected power
+  amplifier: rf_amplifier
+  forward_sensor: rf_forward
+  reflected_sensor: rf_reflected
+  attenuator: rf_attenuator
+  limit_dbm: 0.0
